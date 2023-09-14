@@ -43,8 +43,6 @@ def calcular_fft(dados):
     plt.tight_layout()
     plt.show()
 
-
-
 with open('config.json', 'r') as arquivo_config:
     config = json.load(arquivo_config)
 
