@@ -44,30 +44,24 @@ def calcular_fft(dados):
     plt.show()
 
 
-def main():
-    with open('config.json', 'r') as arquivo_config:
-        config = json.load(arquivo_config)
 
-    modo = config["modo"]
-    if modo == "arquivo":
-        leitor = LeituraArquivo("4a_lista_dados.bin", config["escala_tempo"], config["escala_tensao"])
-    elif modo == "serial":
-        return
-    else:
-        print("Modo inválido no arquivo de configuração.")
-        return
+with open('config.json', 'r') as arquivo_config:
+    config = json.load(arquivo_config)
 
-    dados = list(leitor.ler_dados())
+modo = config["modo"]
+if modo == "arquivo":
+    leitor = LeituraArquivo("4a_lista_dados.bin", config["escala_tempo"], config["escala_tensao"])
+elif modo == "serial":
+    exit()
+else:
+    print("Modo inválido no arquivo de configuração.")
+    exit()
 
-    if not dados:
-        print("Nenhum dado lido.")
-        return
+dados = list(leitor.ler_dados())
 
-    if len(dados) != config["tamanho_sequencia"]:
-        print("Tamanho da sequência lida não corresponde ao configurado.")
-        return
-
+if not dados:
+    print("Nenhum dado lido.")
+elif len(dados) != config["tamanho_sequencia"]:
+    print("Tamanho da sequência lida não corresponde ao configurado.")
+else:
     calcular_fft(dados)
-
-if __name__ == "__main__":
-    main()
