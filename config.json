@@ -1,5 +1,7 @@
 {
-  "modo": "arquivo",
+  "modo": "serial",
+  "baudrate" : 115200,
+  "port" : "/dev/ttyUSB0",
   "escala_tempo": 0.1,
   "escala_tensao": 0.1,
   "tamanho_sequencia": 200

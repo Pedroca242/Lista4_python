@@ -21,6 +21,27 @@ class LeituraArquivo:
                 tensao = tensao * self.escala_tensao
                 yield tempo, tensao
 
+class LeituraSerial: #avr
+    def __init__(self, baudrate, port, escala_tempo, escala_tensao):
+        self.serial = serial.Serial(port=port, baudrate=baudrate, timeout=0.5)
+        self.escala_tempo = escala_tempo
+        self.escala_tensao = escala_tensao
+
+    def ler_dados(self):
+        with self.serial as ser:
+            n = 0
+            while True:
+                dados = ser.read(4)
+                print(dados)
+                if len(dados) != 4 or n == 200:
+                    break
+                tempo, tensao = struct.unpack('hh', dados)
+                tempo = tempo * self.escala_tempo
+                tensao = tensao * self.escala_tensao
+                n += 1
+                yield tempo, tensao
+
+
 def calcular_fft(dados):
     tempo = [item[0] for item in dados]
     tensao = [item[1] for item in dados]
@@ -49,13 +70,21 @@ with open('config.json', 'r') as arquivo_config:
 modo = config["modo"]
 if modo == "arquivo":
     leitor = LeituraArquivo("4a_lista_dados.bin", config["escala_tempo"], config["escala_tensao"])
+    dados = list(leitor.ler_dados())
 elif modo == "serial":
-    exit()
+    leitor = LeituraSerial(config["baudrate"], config["port"], config["escala_tempo"], config["escala_tensao"])
+    dados = list(leitor.ler_dados())
+    while True:
+        if len(dados) == 0:
+            print("Nenhum dado lido")
+            dados = list(leitor.ler_dados())
+        else:
+            break
 else:
     print("Modo inválido no arquivo de configuração.")
     exit()
 
-dados = list(leitor.ler_dados())
+
 
 if not dados:
     print("Nenhum dado lido.")
