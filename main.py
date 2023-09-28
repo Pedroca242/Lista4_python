@@ -21,25 +21,21 @@ class LeituraArquivo:
                 tensao = tensao * self.escala_tensao
                 yield tempo, tensao
 
-class LeituraSerial: #avr
+class LeituraSerial:
     def __init__(self, baudrate, port, escala_tempo, escala_tensao):
         self.serial = serial.Serial(port=port, baudrate=baudrate, timeout=0.5)
         self.escala_tempo = escala_tempo
         self.escala_tensao = escala_tensao
 
     def ler_dados(self):
-        with self.serial as ser:
-            n = 0
-            while True:
-                dados = ser.read(4)
-                print(dados)
-                if len(dados) != 4 or n == 200:
-                    break
-                tempo, tensao = struct.unpack('hh', dados)
-                tempo = tempo * self.escala_tempo
-                tensao = tensao * self.escala_tensao
-                n += 1
-                yield tempo, tensao
+        while True:
+            dados = self.serial.read(4)
+            if len(dados) != 4:
+                break
+            tempo, tensao = struct.unpack('hh', dados)
+            tempo = tempo * self.escala_tempo
+            tensao = tensao * self.escala_tensao
+            yield tempo, tensao
 
 
 def calcular_fft(dados):
@@ -68,27 +64,39 @@ with open('config.json', 'r') as arquivo_config:
     config = json.load(arquivo_config)
 
 modo = config["modo"]
+
 if modo == "arquivo":
-    leitor = LeituraArquivo("4a_lista_dados.bin", config["escala_tempo"], config["escala_tensao"])
-    dados = list(leitor.ler_dados())
+    try:
+        leitor = LeituraArquivo(config["nome_arquivo"], config["escala_tempo"], config["escala_tensao"])
+    except FileNotFoundError:
+        print("Arquivo não encontrado")
+        exit()
 elif modo == "serial":
-    leitor = LeituraSerial(config["baudrate"], config["port"], config["escala_tempo"], config["escala_tensao"])
-    dados = list(leitor.ler_dados())
-    while True:
-        if len(dados) == 0:
-            print("Nenhum dado lido")
-            dados = list(leitor.ler_dados())
-        else:
-            break
+    try:
+        leitor = LeituraSerial(config["baudrate"], config["port"], config["escala_tempo"], config["escala_tensao"])
+    except serial.serialutil.SerialException:
+        print("Porta serial inexistente")
+        exit()
 else:
     print("Modo inválido no arquivo de configuração.")
     exit()
 
+dados = list(leitor.ler_dados())
 
+while True:
+    if len(dados) == 0:
+        print("Nenhum dado lido")
+        if modo == 'serial':
+            dados = list(leitor.ler_dados())
+        else:
+            exit()
+    elif len(dados) != config["tamanho_sequencia"]:
+        print("Tamanho da sequência lida não corresponde ao configurado.")
+        if modo == 'serial':
+            dados = list(leitor.ler_dados())
+        else:
+            exit()
+    else:
+        break
 
-if not dados:
-    print("Nenhum dado lido.")
-elif len(dados) != config["tamanho_sequencia"]:
-    print("Tamanho da sequência lida não corresponde ao configurado.")
-else:
-    calcular_fft(dados)
+calcular_fft(dados)
